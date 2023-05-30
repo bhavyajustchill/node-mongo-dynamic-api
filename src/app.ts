@@ -1,3 +1,4 @@
+import { create } from "domain";
 import express from "express";
 import { cp } from "fs";
 import mongoose from "mongoose";
@@ -27,7 +28,11 @@ attemptConnection()
 // const Item = mongoose.model("Item", itemSchema);
 // Create a generic model without a predefined schema
 
-const Item = mongoose.model("Item", new mongoose.Schema({}, { strict: false }), "items");
+const Item = mongoose.model(
+  "Item",
+  new mongoose.Schema({}, { strict: false }),
+  "items"
+);
 
 // Retrieve all items
 // app.get("/api/items", async (req, res) => {
@@ -68,50 +73,52 @@ app.post("/api/:collectionName", async (req, res) => {
 // Get all items
 app.get("/api/:collectionName", async (req, res) => {
   try {
-    const items = await Item.find();
+    const Model = createDynamicModel(req.params.collectionName);
+    const items = await Model.find({});
     res.json(items);
   } catch (error) {
-    res.status(500).json({ error: "An error occurred" });
+    res.status(500).json(error.message);
   }
 });
 
 // Retrieve a specific item
-app.get("/api/items/:id", async (req, res) => {
+app.get("/api/:collectionName/:itemId", async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id);
-    if (!item) {
-      res.status(404).json({ error: "Item not found" });
-    } else {
-      res.json(item);
-    }
+    const Model = createDynamicModel(req.params.collectionName);
+    const items = await Model.find({ _id: req.params.itemId });
+    res.json(items);
   } catch (error) {
-    res.status(500).json({ error: "An error occurred" });
+    res.status(500).json(error.message);
   }
 });
 
 // Update an item
-app.put("/api/items/:id", async (req, res) => {
+app.put("/api/:collectionName/:itemId", async (req, res) => {
   try {
-    const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!item) {
-      res.status(404).json({ error: "Item not found" });
-    } else {
-      res.json(item);
-    }
+    const collectionName = req.params.collectionName;
+    const itemId = req.params.itemId;
+    const updatedData = req.body;
+
+    const Model = createDynamicModel(collectionName);
+    const item = await Model.findByIdAndUpdate(itemId, updatedData, {
+      new: true,
+    });
+    res.json(item);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
   }
 });
 
 // Delete an item
-app.delete("/api/items/:id", async (req, res) => {
+app.delete("/api/:collectionName/:itemId", async (req, res) => {
   try {
-    const item = await Item.findByIdAndDelete(req.params.id);
-    if (!item) {
-      res.status(404).json({ error: "Item not found" });
-    } else {
-      res.json({ message: "Item deleted successfully" });
-    }
+    const collectionName = req.params.collectionName;
+    const itemId = req.params.itemId;
+    const updatedData = req.body;
+
+    const Model = createDynamicModel(collectionName);
+    const item = await Model.findByIdAndDelete(itemId);
+    res.json(item);
   } catch (error) {
     res.status(500).json({ error: "An error occurred" });
   }
